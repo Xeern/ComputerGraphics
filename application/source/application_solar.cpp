@@ -5,8 +5,10 @@
 #include "shader_loader.hpp"
 #include "model_loader.hpp"
 
+#include "planet.hpp"
+
 #include <glbinding/gl/gl.h>
-// use gl definitions from glbinding 
+// use gl definitions from glbinding
 using namespace gl;
 
 //dont load gl bindings from glfw
@@ -18,6 +20,10 @@ using namespace gl;
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
+
+// vector of planet structs
+std::vector<Planet> planets{ sun, mercury, venus, earth,
+    moon, mars, jupiter, saturn, uranus, neptune, pluto };
 
 ApplicationSolar::ApplicationSolar(std::string const& resource_path)
  :Application{resource_path}
@@ -31,21 +37,61 @@ void ApplicationSolar::render() const {
   // bind shader to upload uniforms
   glUseProgram(m_shaders.at("planet").handle);
 
-  glm::fmat4 model_matrix = glm::rotate(glm::fmat4{}, float(glfwGetTime()), glm::fvec3{0.0f, 1.0f, 0.0f});
-  model_matrix = glm::translate(model_matrix, glm::fvec3{0.0f, 0.0f, -1.0f});
-  glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
-                     1, GL_FALSE, glm::value_ptr(model_matrix));
+    // vector that holds the models which will be drawn
+    std::vector<glm::fmat4> models;
+// for loop over the planets vector
+for (int i = 0; i < planets.size(); ++i)
+    {
+        // if-cause for the moon, since it rotates around the earth
+        if (i == 4)
+        {
+            // extra rotate and translate for the rotation around the moon while also
+            // rotating alongside the earth
+            glm::fmat4 model_matrix = glm::rotate(glm::fmat4{},
+                float(glfwGetTime()) * planets[3].rotat_sp, { 0.0f, 0.0f, 1.0f });
+            model_matrix = glm::translate(model_matrix, planets[3].distance);
+            model_matrix = glm::rotate(model_matrix, float(glfwGetTime() * planets[i].rotat_sp),
+                {0.0f, 0.0f, 0.1f});
+            model_matrix = glm::translate(model_matrix, planets[i].distance);
+            model_matrix = glm::scale(model_matrix, planets[i].size);
+            models.push_back(model_matrix);
 
-  // extra matrix for normal transformation to keep them orthogonal to surface
-  glm::fmat4 normal_matrix = glm::inverseTranspose(glm::inverse(m_view_transform) * model_matrix);
-  glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("NormalMatrix"),
-                     1, GL_FALSE, glm::value_ptr(normal_matrix));
+            glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
+                1, GL_FALSE, glm::value_ptr(models[i]));
 
-  // bind the VAO to draw
-  glBindVertexArray(planet_object.vertex_AO);
+            glm::fmat4 normal_matrix = glm::inverseTranspose(glm::inverse(m_view_transform) *
+                model_matrix);
+            glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("NormalMatrix"),
+                1, GL_FALSE, glm::value_ptr(normal_matrix));
 
-  // draw bound vertex array using bound shader
-  glDrawElements(planet_object.draw_mode, planet_object.num_elements, model::INDEX.type, NULL);
+            glBindVertexArray(planet_object.vertex_AO);
+
+            glDrawElements(planet_object.draw_mode, planet_object.num_elements,
+                model::INDEX.type, NULL);
+            i++;
+        }
+        glm::fmat4 model_matrix = glm::rotate(glm::fmat4{},
+            float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.0f, 1.0f});
+        model_matrix = glm::translate(model_matrix, planets[i].distance);
+        model_matrix = glm::scale(model_matrix, planets[i].size);
+        models.push_back(model_matrix);
+
+        glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
+            1, GL_FALSE, glm::value_ptr(models[i]));
+
+        // extra matrix for normal transformation to keep them orthogonal to surface
+        glm::fmat4 normal_matrix = glm::inverseTranspose(glm::inverse(m_view_transform) *
+            model_matrix);
+        glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("NormalMatrix"),
+            1, GL_FALSE, glm::value_ptr(normal_matrix));
+
+        // bind the VAO to draw
+        glBindVertexArray(planet_object.vertex_AO);
+
+        // draw bound vertex array using bound shader
+        glDrawElements(planet_object.draw_mode, planet_object.num_elements,
+            model::INDEX.type, NULL);
+    }
 }
 
 void ApplicationSolar::updateView() {
@@ -65,10 +111,10 @@ void ApplicationSolar::updateProjection() {
 // update uniform locations
 void ApplicationSolar::uploadUniforms() {
   updateUniformLocations();
-  
+
   // bind new shader
   glUseProgram(m_shaders.at("planet").handle);
-  
+
   updateView();
   updateProjection();
 }
@@ -136,7 +182,7 @@ void ApplicationSolar::initializeGeometry() {
 
   // store type of primitive to draw
   planet_object.draw_mode = GL_TRIANGLES;
-  // transfer number of indices to model object 
+  // transfer number of indices to model object
   planet_object.num_elements = GLsizei(planet_model.indices.size());
 }
 
