@@ -22,7 +22,7 @@
 #include <functional>
 #include <iostream>
 
-// use gl definitions from glbinding 
+// use gl definitions from glbinding
 using namespace gl;
 
 // helper functions
@@ -30,10 +30,10 @@ std::string resourcePath(int argc, char* argv[]);
 void glsl_error(int error, const char* description);
 void watch_gl_errors(bool activate = true);
 
-Launcher::Launcher(int argc, char* argv[]) 
+Launcher::Launcher(int argc, char* argv[])
  :m_camera_fov{glm::radians(60.0f)}
- ,m_window_width{640u}
- ,m_window_height{480u}
+ ,m_window_width{840u}
+ ,m_window_height{840u}
  ,m_window{nullptr}
  ,m_last_second_time{0.0}
  ,m_frames_per_second{0u}
@@ -65,7 +65,7 @@ void Launcher::initialize() {
     std::exit(EXIT_FAILURE);
   }
 
-  // set OGL version explicitly 
+  // set OGL version explicitly
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
@@ -112,7 +112,7 @@ void Launcher::initialize() {
   // activate error checking after each gl function call
   watch_gl_errors();
 }
- 
+
 void Launcher::mainLoop() {
   // do before framebuffer_resize call as it requires the projection uniform location
   // throw exception if shader compilation was unsuccessfull
@@ -121,7 +121,7 @@ void Launcher::mainLoop() {
   // enable depth testing
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
-  
+
   // rendering loop
   while (!glfwWindowShouldClose(m_window)) {
     // query input
@@ -147,11 +147,11 @@ void Launcher::update_projection(GLFWwindow* m_window, int width, int height) {
 
   float aspect = float(width) / float(height);
   float fov_y = m_camera_fov;
-  // if width is smaller, extend vertical fov 
+  // if width is smaller, extend vertical fov
   if (width < height) {
     fov_y = 2.0f * glm::atan(glm::tan(m_camera_fov * 0.5f) * (1.0f / aspect));
   }
-  // projection is hor+ 
+  // projection is hor+
   glm::fmat4 camera_projection = glm::perspective(fov_y, aspect, 0.1f, 100.0f);
   // upload matrix to gpu
   m_application->setProjection(camera_projection);
@@ -187,7 +187,7 @@ void Launcher::update_shader_programs(bool throwing) {
 
   // after shader programs are recompiled, uniform locations may change
   m_application->uploadUniforms();
-  
+
   // upload projection matrix to new shaders
   int width, height;
   glfwGetFramebufferSize(m_window, &width, &height);
