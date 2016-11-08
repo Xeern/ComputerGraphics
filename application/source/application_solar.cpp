@@ -59,6 +59,9 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
     for (int i = 0; i < planets.size(); ++i)
         {
             glm::fmat4 model_matrix = glm::fmat4{};
+            // distance for different intensity of illumination
+            glUniform3fv(m_shaders.at("planet").u_locs.at("PlanetPos"),1,
+                glm::value_ptr(planets[i].distance));
             // if-cause for the moon, since it rotates around the earth
             if (i == 4)
             {
@@ -67,6 +70,8 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 model_matrix = glm::rotate(model_matrix,
                     float(glfwGetTime()) * planets[3].rotat_sp, { 0.0f, 0.0f, 0.1f });
                 model_matrix = glm::translate(model_matrix, planets[3].distance);
+                glUniform3fv(m_shaders.at("planet").u_locs.at("PlanetPos"),1,
+                    glm::value_ptr(planets[3].distance));
             }
             glm::fmat4 orbit_matrix = model_matrix;
             orbit_matrix = glm::scale(orbit_matrix,glm::fvec3(planets[i].distance.x));
@@ -94,7 +99,16 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
 
             // bind the VAO to draw
             glBindVertexArray(planet_object.vertex_AO);
-
+            // uniforms for shading and coloring the planets
+            glUniform3fv(m_shaders.at("planet").u_locs.at("SunPosition"),1,
+                glm::value_ptr(planets[0].distance));
+            glUniform3fv(m_shaders.at("planet").u_locs.at("AmbientVector"),1,
+                glm::value_ptr(planets[i].ambient));
+            glUniform3fv(m_shaders.at("planet").u_locs.at("DiffuseVector"),1,
+                glm::value_ptr(planets[i].diffuse));
+            glUniform3fv(m_shaders.at("planet").u_locs.at("SpecularVector"),1,
+                glm::value_ptr(planets[i].specular));
+            glUniform1f(m_shaders.at("planet").u_locs.at("ShiningFloat"),planets[i].gloss);
             // draw bound vertex array using bound shader
             glDrawElements(planet_object.draw_mode, planet_object.num_elements,
                 model::INDEX.type, NULL);
@@ -145,7 +159,6 @@ void ApplicationSolar::uploadUniforms() {
 
   // bind new shader
   glUseProgram(m_shaders.at("planet").handle);
-  // glUseProgram(m_shaders.at("star").handle);
 
   updateView();
   updateProjection();
@@ -153,27 +166,31 @@ void ApplicationSolar::uploadUniforms() {
 
 // handle key input
 void ApplicationSolar::keyCallback(int key, int scancode, int action, int mods) {
-  if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_REPEAT) {
+  if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) &&
+    (action == GLFW_REPEAT || action == GLFW_PRESS)) {
     m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.0f, 0.025f, 0.0f});
     updateView();
   }
-  else if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) && action == GLFW_REPEAT) {
+  else if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) &&
+    (action == GLFW_REPEAT || action == GLFW_PRESS)) {
     m_view_transform = glm::translate(m_view_transform, glm::fvec3{-0.025f, 0.0f, 0.0f});
     updateView();
   }
-  else if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) && action == GLFW_REPEAT) {
+  else if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) &&
+    (action == GLFW_REPEAT || action == GLFW_PRESS)) {
     m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.0f, -0.025f, 0.0f});
     updateView();
   }
-  else if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_REPEAT) {
+  else if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) &&
+    (action == GLFW_REPEAT || action == GLFW_PRESS)) {
     m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.025f, 0.0f, 0.0f});
     updateView();
   }
-  else if (key == GLFW_KEY_E && action == GLFW_REPEAT) {
+  else if ((key == GLFW_KEY_E || key == GLFW_KEY_Y) && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
     m_view_transform = glm::translate(m_view_transform, glm::fvec3{ 0.0f, 0.0f, 0.05f });
     updateView();
   }
-  else if (key == GLFW_KEY_T && action == GLFW_REPEAT) {
+  else if ((key == GLFW_KEY_T || key == GLFW_KEY_X) && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
     m_view_transform = glm::translate(m_view_transform, glm::fvec3{ 0.0f, 0.0f, -0.05f });
     updateView();
   }
@@ -199,6 +216,13 @@ void ApplicationSolar::initializeShaderPrograms() {
   m_shaders.at("planet").u_locs["ModelMatrix"] = -1;
   m_shaders.at("planet").u_locs["ViewMatrix"] = -1;
   m_shaders.at("planet").u_locs["ProjectionMatrix"] = -1;
+  // initialization of the new uniforms
+  m_shaders.at("planet").u_locs["SunPosition"] = -1;
+  m_shaders.at("planet").u_locs["AmbientVector"] = -1;
+  m_shaders.at("planet").u_locs["DiffuseVector"] = -1;
+  m_shaders.at("planet").u_locs["SpecularVector"] = -1;
+  m_shaders.at("planet").u_locs["PlanetPos"] = -1;
+  m_shaders.at("planet").u_locs["ShiningFloat"] = -1;
 
   // attempt to create a shader
   m_shaders.emplace("star", shader_program{m_resource_path + "shaders/star.vert",
@@ -305,7 +329,6 @@ for (int j = 0; j <= 179; j++) {
     orbits.push_back(y);
     orbits.push_back(0.0f);
 }
-
 
     srand(time(NULL));
 

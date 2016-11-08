@@ -11,9 +11,20 @@ uniform mat4 ProjectionMatrix;
 uniform mat4 NormalMatrix;
 
 out vec3 pass_Normal;
+out vec3 ViewVec;
+out vec3 FragPos;
 
 void main(void)
 {
-	gl_Position = (ProjectionMatrix  * ViewMatrix * ModelMatrix) * vec4(in_Position, 1.0);
-	pass_Normal = (NormalMatrix * vec4(in_Normal, 0.0)).xyz;
+    gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * vec4(in_Position, 1.0);
+    // pass_Normal = normalize((NormalMatrix * vec4(in_Normal, 0.0)).xyz);
+
+    // changed the pass_Normal variable because the old one caused our shadows to go
+    // all nuts when changing the camera position
+    pass_Normal = mat3(transpose(inverse(ModelMatrix))) * in_Normal;
+
+    mat4 CameraMatrix = inverse(ViewMatrix);
+    vec3 ViewPos = CameraMatrix[3].xyz;
+    FragPos = vec3(ModelMatrix * vec4(in_Position,1.0));
+    ViewVec = normalize(ViewPos - FragPos);
 }
