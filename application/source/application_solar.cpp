@@ -59,7 +59,6 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
     for (int i = 0; i < planets.size(); ++i)
         {
             glm::fmat4 model_matrix = glm::fmat4{};
-            // glm::vec3 orbit = glm::vec3{};
             // if-cause for the moon, since it rotates around the earth
             if (i == 4)
             {
@@ -69,22 +68,14 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                     float(glfwGetTime()) * planets[3].rotat_sp, { 0.0f, 0.0f, 0.1f });
                 model_matrix = glm::translate(model_matrix, planets[3].distance);
             }
-            // orbit = glm::rotate(orbit, float(glfwGetTime()), {0.0f, 0.0f, 1.0f});
-            // orbit = orbit + planets[i].distance;
             glm::fmat4 orbit_matrix = model_matrix;
-
             orbit_matrix = glm::scale(orbit_matrix,glm::fvec3(planets[i].distance.x));
             glUseProgram(m_shaders.at("orbit").handle);
-
             glUniformMatrix4fv(m_shaders.at("orbit").u_locs.at("ModelMatrix"),
                 1, GL_FALSE, glm::value_ptr(orbit_matrix));
-
             glBindVertexArray(orbit_object.vertex_AO);
-
             glDrawArrays(GL_LINE_LOOP, 0, orbits.size()/3);
-
             glUseProgram(m_shaders.at("planet").handle);
-
 
             model_matrix = glm::rotate(model_matrix,
                 float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.0f, 0.1f});
@@ -107,23 +98,6 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
             // draw bound vertex array using bound shader
             glDrawElements(planet_object.draw_mode, planet_object.num_elements,
                 model::INDEX.type, NULL);
-
-            // std::vector<float> temp_orbit = orbits;
-            // for (int j = 0; j < 539; ++j)
-            // {
-            //     if ((j + 1) % 3 != 0)
-            //     {
-            //         orbits[j] = orbits[j] * 2.0f/*planets[i].distance.x*/;
-            //     }
-            // }
-            // glUseProgram(m_shaders.at("orbit").handle);
-            // glUniformMatrix4fv(m_shaders.at("orbit").u_locs.at("ModelMatrix"),
-            //     1, GL_FALSE, glm::value_ptr(glm::fmat4{}));
-            // glBindVertexArray(orbit_object.vertex_AO);
-            // glDrawArrays(GL_LINE_LOOP, 0, orbits.size()/3);
-            // orbits = temp_orbit;
-            // glUseProgram(m_shaders.at("planet").handle);
-
         }
 // planet for-loop ends
 
@@ -179,28 +153,28 @@ void ApplicationSolar::uploadUniforms() {
 
 // handle key input
 void ApplicationSolar::keyCallback(int key, int scancode, int action, int mods) {
-  if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_PRESS) {
-    m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.0f, 0.1f, 0.0f});
+  if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_REPEAT) {
+    m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.0f, 0.025f, 0.0f});
     updateView();
   }
-  else if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) && action == GLFW_PRESS) {
-    m_view_transform = glm::translate(m_view_transform, glm::fvec3{-0.1f, 0.0f, 0.0f});
+  else if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) && action == GLFW_REPEAT) {
+    m_view_transform = glm::translate(m_view_transform, glm::fvec3{-0.025f, 0.0f, 0.0f});
     updateView();
   }
-  else if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) && action == GLFW_PRESS) {
-    m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.0f, -0.1f, 0.0f});
+  else if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) && action == GLFW_REPEAT) {
+    m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.0f, -0.025f, 0.0f});
     updateView();
   }
-  else if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS) {
-    m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.1f, 0.0f, 0.0f});
+  else if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_REPEAT) {
+    m_view_transform = glm::translate(m_view_transform, glm::fvec3{0.025f, 0.0f, 0.0f});
     updateView();
   }
-  else if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-    m_view_transform = glm::translate(m_view_transform, glm::fvec3{ 0.0f, 0.0f, 0.1f });
+  else if (key == GLFW_KEY_E && action == GLFW_REPEAT) {
+    m_view_transform = glm::translate(m_view_transform, glm::fvec3{ 0.0f, 0.0f, 0.05f });
     updateView();
   }
-  else if (key == GLFW_KEY_T && action == GLFW_PRESS) {
-    m_view_transform = glm::translate(m_view_transform, glm::fvec3{ 0.0f, 0.0f, -0.1f });
+  else if (key == GLFW_KEY_T && action == GLFW_REPEAT) {
+    m_view_transform = glm::translate(m_view_transform, glm::fvec3{ 0.0f, 0.0f, -0.05f });
     updateView();
   }
 }
