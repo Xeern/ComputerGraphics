@@ -32,6 +32,7 @@ std::vector<float> stars;
 std::vector<float> orbits;
 model_object star_object;
 model_object orbit_object;
+// float that works as boolean
 float Cel = 0.0;
 
 ApplicationSolar::ApplicationSolar(std::string const& resource_path)
@@ -51,8 +52,6 @@ glBindVertexArray(star_object.vertex_AO);
 glDrawArrays(GL_POINTS, 0, stars.size()/6);
   // bind shader to upload uniforms
   glUseProgram(m_shaders.at("planet").handle);
-//  glUseProgram(m_shaders.at("CelPlanet").handle);
-
     // vector that holds the models which will be drawn
     std::vector<glm::fmat4> models;
 
@@ -69,7 +68,7 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 // extra rotate and translate for the rotation around the moon while also
                 // rotating alongside the earth
                 model_matrix = glm::rotate(model_matrix,
-                    /*float(glfwGetTime())*/1 * planets[3].rotat_sp, { 0.0f, 0.0f, 0.1f });
+                    float(glfwGetTime()) * planets[3].rotat_sp, { 0.0f, 0.0f, 0.1f });
                 model_matrix = glm::translate(model_matrix, planets[3].distance);
                 glUniform3fv(m_shaders.at("planet").u_locs.at("PlanetPos"),1,
                     glm::value_ptr(planets[3].distance));
@@ -83,7 +82,7 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
             glDrawArrays(GL_LINE_LOOP, 0, orbits.size()/3);
             glUseProgram(m_shaders.at("planet").handle);
             model_matrix = glm::rotate(model_matrix,
-                /*float(glfwGetTime())*/1 * planets[i].rotat_sp, {0.0f, 0.0f, 0.1f});
+                float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.0f, 0.1f});
             model_matrix = glm::translate(model_matrix, planets[i].distance);
             model_matrix = glm::scale(model_matrix, planets[i].size);
             models.push_back(model_matrix);
@@ -98,21 +97,9 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 1, GL_FALSE, glm::value_ptr(normal_matrix));
 
             // bind the VAO to draw
-            // glUseProgram(m_shaders.at("CelPlanet").handle);
-            // glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
-            //     1, GL_FALSE, glm::value_ptr(models[i]));
-            // glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("NormalMatrix"),
-            //     1, GL_FALSE, glm::value_ptr(models[i]));
-            // glBindVertexArray(planet_object.vertex_AO);
-            // uniforms for shading and coloring the planets
-            // glUniform3f(m_shaders.at("CelPlanet").u_locs.at("border"), vec3(1.0f,1.0f,1.0f));
-            // glUniform1f(m_shaders.at("CelPlanet").u_locs.at("CelBool"),0.0f);
-            // glUniform1f(m_shaders.at("CelPlanet").u_locs.at("b_offset"),0.5f);
-            // glDrawElements(planet_object.draw_mode, planet_object.num_elements,
-            //     model::INDEX.type, NULL);
             glBindVertexArray(planet_object.vertex_AO);
-
             glUseProgram(m_shaders.at("planet").handle);
+            // uniform that shows if cel-shading needs to be applied or not
             glUniform1f(m_shaders.at("planet").u_locs.at("CelBool"),Cel);
             glUniform3fv(m_shaders.at("planet").u_locs.at("SunPosition"),1,
                 glm::value_ptr(planets[0].distance));
@@ -124,14 +111,6 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 glm::value_ptr(planets[i].specular));
             glUniform1f(m_shaders.at("planet").u_locs.at("ShiningFloat"),planets[i].gloss);
             // draw bound vertex array using bound shader
-            // if (Cel == 1)
-            // {
-            //     glEnable(GL_CULL_FACE);
-            //     glCullFace(GL_CCW);
-            //     glDepthMask(GL_TRUE);
-            //     glDrawElements(planet_object.draw_mode, planet_object.num_elements,
-            //         model::INDEX.type, NULL);
-            // }
             glDrawElements(planet_object.draw_mode, planet_object.num_elements,
                 model::INDEX.type, NULL);
         }
@@ -156,10 +135,6 @@ void ApplicationSolar::updateView() {
   glUniformMatrix4fv(m_shaders.at("orbit").u_locs.at("ViewMatrix"),
                      1, GL_FALSE, glm::value_ptr(view_matrix));
 
-  // glUseProgram(m_shaders.at("CelPlanet").handle);
-  // glUniformMatrix4fv(m_shaders.at("CelPlanet").u_locs.at("ViewMatrix"),
-  //                    1, GL_FALSE, glm::value_ptr(view_matrix));
-
   glUseProgram(m_shaders.at("planet").handle);
 }
 
@@ -175,10 +150,6 @@ void ApplicationSolar::updateProjection() {
   glUseProgram(m_shaders.at("orbit").handle);
   glUniformMatrix4fv(m_shaders.at("orbit").u_locs.at("ProjectionMatrix"),
                      1, GL_FALSE, glm::value_ptr(m_view_projection));
-
-  // glUseProgram(m_shaders.at("CelPlanet").handle);
-  // glUniformMatrix4fv(m_shaders.at("CelPlanet").u_locs.at("ProjectionMatrix"),
-  //                    1, GL_FALSE, glm::value_ptr(m_view_projection));
 
   glUseProgram(m_shaders.at("planet").handle);
 }
@@ -262,15 +233,6 @@ void ApplicationSolar::initializeShaderPrograms() {
   m_shaders.at("planet").u_locs["SpecularVector"] = -1;
   m_shaders.at("planet").u_locs["PlanetPos"] = -1;
   m_shaders.at("planet").u_locs["ShiningFloat"] = -1;
-
-  m_shaders.emplace("CelPlanet", shader_program{m_resource_path + "shaders/cel.vert",
-                                           m_resource_path + "shaders/cel.frag"});
-  // m_shaders.at("CelPlanet").u_locs["NormalMatrix"] = -1;
-  m_shaders.at("CelPlanet").u_locs["ModelMatrix"] = -1;
-  m_shaders.at("CelPlanet").u_locs["ViewMatrix"] = -1;
-  m_shaders.at("CelPlanet").u_locs["ProjectionMatrix"] = -1;
-  // m_shaders.at("CelPlanet").u_locs["border"] = -1;
-  m_shaders.at("CelPlanet").u_locs["b_offset"] = -1;
 
   // attempt to create a shader
   m_shaders.emplace("star", shader_program{m_resource_path + "shaders/star.vert",

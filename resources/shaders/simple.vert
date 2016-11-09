@@ -20,14 +20,17 @@ void main(void)
     vec4 border = vec4(in_Position + in_Normal * 0,1.0);
     if (CelBool == 1)
     {
-        border = vec4(in_Position + in_Normal * 0.05,1.0);
+        // used to prevent the planets from "shrinking" when adding the outline
+        // but this causes a small circle to appear on our planets, because
+        // the model of the spheres seems to have that texture
+        // by multiplying with 0 this doesn’t happen though
+        border = vec4(in_Position + in_Normal * 0.1,1.0);
     }
     gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * border;
-    // pass_Normal = normalize((NormalMatrix * vec4(in_Normal, 0.0)).xyz);
 
-    // changed the pass_Normal variable because the old one caused our shadows to go
-    // all nuts when changing the camera position
-    pass_Normal = mat3(transpose(inverse(ModelMatrix))) * in_Normal;
+    // changed the pass_Normal variable because the old one caused our shadows
+    // to go all nuts when changing the camera position
+    pass_Normal = normalize(mat3(transpose(inverse(ModelMatrix))) * in_Normal);
 
     mat4 CameraMatrix = inverse(ViewMatrix);
     vec3 ViewPos = CameraMatrix[3].xyz;

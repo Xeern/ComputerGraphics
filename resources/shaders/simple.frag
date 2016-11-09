@@ -19,19 +19,33 @@ vec3 HalfwayVec = normalize(LightVec + ViewVec);
 // blinn-phong illumiantion model with modified intensities mainly
 // for cosmetics
 vec3 amb = AmbientVector * 1;
-vec3 dif = DiffuseVector * 0.2 * max(dot(LightVec,pass_Normal),0);
-vec3 spec = SpecularVector * 0.0025 *
+vec3 dif = DiffuseVector * max(dot(LightVec,pass_Normal),0);
+vec3 spec = SpecularVector *
             pow(max(dot(pass_Normal,HalfwayVec),0),4*ShiningFloat);
 vec3 illumination = (amb + dif + spec)/(abs(PlanetPos.x)*1.5+0.4);
 if (CelBool == 0)
     {
         out_Color = vec4(illumination, 1.0);
     } else {
-        if (dot(ViewVec,pass_Normal) < 1.5)
+        // drawing the outline
+        if (dot(ViewVec,pass_Normal) <= 0.3)
         {
-            out_Color = vec4(1.0,1.0,1.0,1.0);
+            out_Color = vec4(0.9,0.9,0.9,1.0);
+        // several cases for different color intensities
+        } else if (dot(LightVec,pass_Normal) <= 0) {
+            out_Color = vec4(illumination,1.0) * 0.9;
+        } else if (0 < dot(LightVec,pass_Normal) && dot(LightVec,pass_Normal) <= 0.22) {
+            out_Color = vec4(illumination,1.0) * 1;
+        } else if (0.22 < dot(LightVec,pass_Normal) && dot(LightVec,pass_Normal) <= 0.45) {
+            out_Color = vec4(illumination,1.0) * 1.1;
+        } else if (0.45 < dot(LightVec,pass_Normal) && dot(LightVec,pass_Normal) <= 0.68) {
+            out_Color = vec4(illumination,1.0) * 1.15;
+        } else if (0.68 < dot(LightVec,pass_Normal) && dot(LightVec,pass_Normal) <= 0.85) {
+            out_Color = vec4(illumination,1.0) * 1.3;
+        } else if (0.85 < dot(LightVec,pass_Normal) && dot(LightVec,pass_Normal) <= 0.96) {
+            out_Color = vec4(illumination,1.0) * 1.4;
         } else {
-            out_Color = vec4(illumination,1.0);
+            out_Color = vec4(illumination,1.0) * 1.5;
         }
     }
 }
