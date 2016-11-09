@@ -9,6 +9,7 @@ uniform mat4 ModelMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionMatrix;
 uniform mat4 NormalMatrix;
+uniform float CelBool;
 
 out vec3 pass_Normal;
 out vec3 ViewVec;
@@ -16,7 +17,12 @@ out vec3 FragPos;
 
 void main(void)
 {
-    gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * vec4(in_Position, 1.0);
+    vec4 border = vec4(in_Position + in_Normal * 0,1.0);
+    if (CelBool == 1)
+    {
+        border = vec4(in_Position + in_Normal * 0.05,1.0);
+    }
+    gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * border;
     // pass_Normal = normalize((NormalMatrix * vec4(in_Normal, 0.0)).xyz);
 
     // changed the pass_Normal variable because the old one caused our shadows to go
