@@ -3,6 +3,7 @@
 in vec3 pass_Normal;
 in vec3 ViewVec;
 in vec3 FragPos;
+in vec2 pass_Texcoord;
 out vec4 out_Color;
 
 uniform vec3 SunPosition;
@@ -12,21 +13,23 @@ uniform vec3 SpecularVector;
 uniform float ShiningFloat;
 uniform vec3 PlanetPos;
 uniform float CelBool;
+uniform sampler2D ColorTex; /*define*/
 
 void main() {
+vec4 texColor = texture(ColorTex,pass_Texcoord); /*define*/
 vec3 LightVec = normalize(SunPosition - FragPos);
 vec3 HalfwayVec = normalize(LightVec + ViewVec);
-// blinn-phong illumiantion model with modified intensities mainly
+// blinn-phong illumination model with modified intensities mainly
 // for cosmetics
-vec3 amb = AmbientVector * 1;
-vec3 dif = DiffuseVector * max(dot(LightVec,pass_Normal),0);
+vec3 amb = AmbientVector * 1 * texColor;
+vec3 dif = DiffuseVector * max(dot(LightVec,pass_Normal),0) * texColor;
 vec3 spec = SpecularVector *
             pow(max(dot(pass_Normal,HalfwayVec),0),4*ShiningFloat);
 vec3 illumination = (amb + dif + spec)/(abs(PlanetPos.x)*1.5+0.4);
 if (CelBool == 0)
     {
         out_Color = vec4(illumination, 1.0);
-    } else {
+    } else if (CelBool == 1) {
         // drawing the outline
         if (dot(ViewVec,pass_Normal) <= 0.3)
         {
@@ -47,6 +50,9 @@ if (CelBool == 0)
         } else {
             out_Color = vec4(illumination,1.0) * 1.5;
         }
+    } else if (CelBool == 2) {
+        out_Color = texColor;
+        // out_Color = vec4(0.5,0.5,0.5,1.0);
     }
 }
 
