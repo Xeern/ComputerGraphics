@@ -29,6 +29,9 @@ using namespace gl;
 std::vector<Planet> planets{ sun, mercury, venus, earth,
     moon, mars, jupiter, saturn, uranus, neptune, pluto };
 
+std::vector<std::string> files {"sun.png", "mercury.png", "venus.png", "earth.png",
+    "moon.png", "mars.png", "jupiter.png", "saturn.png", "uranus.png", "neptune.png", "pluto.png"};
+std::vector<pixel_data> planetTexts;
 std::vector<float> stars;
 std::vector<float> orbits;
 model_object star_object;
@@ -41,12 +44,12 @@ ApplicationSolar::ApplicationSolar(std::string const& resource_path)
  :Application{resource_path}
  ,planet_object{}
 {
+  loadTexture();
   initializeGeometry();
   initializeShaderPrograms();
 }
 
 void ApplicationSolar::render() const {
-
 glUseProgram(m_shaders.at("star").handle);
 glUniformMatrix4fv(m_shaders.at("star").u_locs.at("ModelMatrix"),
     1, GL_FALSE, glm::value_ptr(glm::fmat4{}));
@@ -70,7 +73,7 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 // extra rotate and translate for the rotation around the moon while also
                 // rotating alongside the earth
                 model_matrix = glm::rotate(model_matrix,
-                    float(glfwGetTime()) * planets[3].rotat_sp, { 0.0f, 0.0f, 0.1f });
+                    float(glfwGetTime()) * planets[3].rotat_sp, { 0.0f, 0.1f, 0.0f }); //z=0.1
                 model_matrix = glm::translate(model_matrix, planets[3].distance);
                 glUniform3fv(m_shaders.at("planet").u_locs.at("PlanetPos"),1,
                     glm::value_ptr(planets[3].distance));
@@ -84,8 +87,10 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
             glDrawArrays(GL_LINE_LOOP, 0, orbits.size()/3);
             glUseProgram(m_shaders.at("planet").handle);
             model_matrix = glm::rotate(model_matrix,
-                float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.0f, 0.1f});
+                float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
             model_matrix = glm::translate(model_matrix, planets[i].distance);
+            model_matrix = glm::rotate(model_matrix,
+                float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
             model_matrix = glm::scale(model_matrix, planets[i].size);
             models.push_back(model_matrix);
 
@@ -113,12 +118,12 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 glm::value_ptr(planets[i].specular));
             glUniform1f(m_shaders.at("planet").u_locs.at("ShiningFloat"),planets[i].gloss);
 
-            loadTexture(i);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, planet_tex.handle);
             int colorSamplerLoc = glGetUniformLocation(m_shaders.at("planet").handle,"ColorTex");
             // glUseProgram(m_shaders.at("planet").handle);
-            glUniform1i(colorSamplerLoc,1);
+            glUniform1i(colorSamplerLoc,i);
+
             // draw bound vertex array using bound shader
             glDrawElements(planet_object.draw_mode, planet_object.num_elements,
                 model::INDEX.type, NULL);
@@ -259,17 +264,12 @@ void ApplicationSolar::initializeShaderPrograms() {
   m_shaders.at("orbit").u_locs["ModelMatrix"] = -1;
   m_shaders.at("orbit").u_locs["ViewMatrix"] = -1;
   m_shaders.at("orbit").u_locs["ProjectionMatrix"] = -1;
-
-
 }
 
 // load models
 void ApplicationSolar::initializeGeometry() {
   model planet_model = model_loader::obj(m_resource_path + "models/sphere.obj",
     model::NORMAL | model::TEXCOORD);
-/*  pixel_data planet_texture = texture_loader::file(m_resource_path +
-    "textures/sun.png");*/
-
 
   // glEnable(GL_PROGRAM_POINT_SIZE);
   // generate vertex array object
@@ -341,40 +341,26 @@ void ApplicationSolar::initializeGeometry() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, orbit_object.element_BO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * orbits.size(),
         orbits.data(), GL_STATIC_DRAW);
-
-//texture stuff:
-/*    glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &planet_tex.handle);
-    glBindTexture(GL_TEXTURE_2D, planet_tex.handle);
-
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, planet_texture.channels, planet_texture.width,
-        planet_texture.height, 0, planet_texture.channels, planet_texture.channel_type,
-        planet_texture.ptr());*/
 }
-void ApplicationSolar::loadTexture(int planet_number) {
-    std::vector<std::string> files { "sun.png", "mercury.png", "venus.png", "earth.png", "moon.png",
-    "mars.png", "jupiter.png", "saturn.png", "uranus.png", "neptune.png", "pluto.png"};
-/*    for (int i = 0; i <= files.size(); ++i)
+
+void ApplicationSolar::loadTexture() const{
+for (int i = 0; i < files.size(); ++i)
     {
         pixel_data planet_texture = texture_loader::file(m_resource_path +
-            "textures/" + files[i]);
-    }*/
-    pixel_data planet_texture = texture_loader::file(m_resource_path +
-            "textures/" + files[planet_number]);
-
-    glActiveTexture(GL_TEXTURE0);
+                "textures/"+files[i]);
+    // pixel_data planet_texture = texture_loader::file(m_resource_path + "textures/sun.png");
+    glActiveTexture(GL_TEXTURE0+i);
     glGenTextures(1, &planet_tex.handle);
     glBindTexture(GL_TEXTURE_2D, planet_tex.handle);
 
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, planet_texture.channels, planet_texture.width,
-        planet_texture.height, 0, planet_texture.channels, planet_texture.channel_type,
+    glTexImage2D(GL_TEXTURE_2D, 0, planet_texture.channels,
+        planet_texture.width, planet_texture.height,
+        0, planet_texture.channels, planet_texture.channel_type,
         planet_texture.ptr());
+    }
 }
 
 
@@ -391,8 +377,8 @@ for (int j = 0; j <= 179; j++) {
     float x = 1.0f * cos(angle);
     float y = 1.0f * sin(angle);
     orbits.push_back(x);
-    orbits.push_back(y);
     orbits.push_back(0.0f);
+    orbits.push_back(y);
 }
 
     srand(time(NULL));

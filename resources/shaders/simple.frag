@@ -13,15 +13,15 @@ uniform vec3 SpecularVector;
 uniform float ShiningFloat;
 uniform vec3 PlanetPos;
 uniform float CelBool;
-uniform sampler2D ColorTex; /*define*/
+uniform sampler2D ColorTex;
 
 void main() {
-vec4 texColor = texture(ColorTex,pass_Texcoord); /*define*/
+vec4 texColor = texture(ColorTex,pass_Texcoord);
 vec3 LightVec = normalize(SunPosition - FragPos);
 vec3 HalfwayVec = normalize(LightVec + ViewVec);
 // blinn-phong illumination model with modified intensities mainly
 // for cosmetics
-vec3 amb = AmbientVector * 1 * texColor;
+vec3 amb = AmbientVector* 1 * texColor;
 vec3 dif = DiffuseVector * max(dot(LightVec,pass_Normal),0) * texColor;
 vec3 spec = SpecularVector *
             pow(max(dot(pass_Normal,HalfwayVec),0),4*ShiningFloat);
