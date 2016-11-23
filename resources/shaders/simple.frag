@@ -4,36 +4,77 @@ in vec3 pass_Normal;
 in vec3 ViewVec;
 in vec3 FragPos;
 in vec2 pass_Texcoord;
+in vec3 pass_Tangent;
 out vec4 out_Color;
 
+uniform vec3 PlanetPos;
 uniform vec3 SunPosition;
 uniform vec3 AmbientVector;
 uniform vec3 DiffuseVector;
 uniform vec3 SpecularVector;
 uniform float ShiningFloat;
-uniform vec3 PlanetPos;
+
 uniform float CelBool;
+
 uniform sampler2D ColorTex;
+uniform sampler2D NormalTex;
+uniform sampler2D SkyTex;
 
 void main() {
-vec4 texColor = texture(ColorTex,pass_Texcoord);
+//general illumination
 vec3 LightVec = normalize(SunPosition - FragPos);
 vec3 HalfwayVec = normalize(LightVec + ViewVec);
-// blinn-phong illumination model with modified intensities mainly
-// for cosmetics
-vec3 amb = AmbientVector* 1 * texColor;
-vec3 dif = DiffuseVector * max(dot(LightVec,pass_Normal),0) * texColor;
+
+//color of the skysphere
+vec4 skyColor = texture(SkyTex,pass_Texcoord);
+//normal texture color
+vec4 texColor = texture(ColorTex,pass_Texcoord);
+
+//calculations for normal mapping
+vec3 biTangent = cross(pass_Normal,pass_Tangent);
+mat3 tMat = transpose(mat3(pass_Tangent,biTangent,pass_Normal));
+vec3 texSpaceNorm = texture(NormalTex,pass_Texcoord).rgb;
+vec3 tanSpaceNorm = normalize(texSpaceNorm * 2.0f - 1.0f);
+vec3 textureNormal = tanSpaceNorm * tMat;
+
+
+//blinn-phong illumination model with modified intensities mainly
+// for cosmetics (general illumination)
+vec3 amb = AmbientVector/*vec3(0.9f, 0.9f, 0.9f)*/ * 1 * vec3(texColor);
+vec3 dif = DiffuseVector/*vec3(0.7f, 0.7f, 0.7f)*/ * max(dot(LightVec,pass_Normal),0) * texColor;
 vec3 spec = SpecularVector *
             pow(max(dot(pass_Normal,HalfwayVec),0),4*ShiningFloat);
 vec3 illumination = (amb + dif + spec)/(abs(PlanetPos.x)*1.5+0.4);
+//illumination if normal texture is available
+if (texSpaceNorm.x != 0.0 )
+{
+amb = AmbientVector * 1 * vec3(texColor);
+dif = DiffuseVector * max(dot(LightVec,textureNormal),0) * texColor;
+spec = SpecularVector *
+            pow(max(dot(textureNormal,HalfwayVec),0),4*ShiningFloat);
+illumination = (amb + dif + spec)/(abs(PlanetPos.x)*1.5+0.4);
+}
+
 if (CelBool == 0)
+    //normal illumination
     {
         out_Color = vec4(illumination, 1.0);
+        if (skyColor.x != 0.0)
+        {
+            out_Color = skyColor;
+        }
     } else if (CelBool == 1) {
+        //cel-shading
+        dif = DiffuseVector * max(dot(LightVec,pass_Normal),0) * texColor;
+        spec = SpecularVector *
+            pow(max(dot(pass_Normal,HalfwayVec),0),4*ShiningFloat);
+        illumination = (amb + dif + spec)/(abs(PlanetPos.x)*1.5+0.4);
         // drawing the outline
         if (dot(ViewVec,pass_Normal) <= 0.3)
         {
-            out_Color = vec4(0.9,0.9,0.9,1.0);
+            //small fix for the outline, yet to solve properly
+            // out_Color = vec4(0.7,0.7,0.7,1.0);
+            out_Color = skyColor;
         // several cases for different color intensities
         } else if (dot(LightVec,pass_Normal) <= 0) {
             out_Color = vec4(illumination,1.0) * 0.9;
@@ -50,9 +91,18 @@ if (CelBool == 0)
         } else {
             out_Color = vec4(illumination,1.0) * 1.5;
         }
+        if (skyColor.x != 0.0)
+        {
+            out_Color = skyColor;
+        }
     } else if (CelBool == 2) {
+        //mostly for cheking several things
+        //currently textures only without illumination
         out_Color = texColor;
-        // out_Color = vec4(0.5,0.5,0.5,1.0);
+        if (skyColor.x != 0.0)
+        {
+            out_Color = skyColor;
+        }
     }
 }
 

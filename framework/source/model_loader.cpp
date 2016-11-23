@@ -20,10 +20,10 @@ model obj(std::string const& name, model::attrib_flag_t import_attribs){
 
   if (!err.empty()) {
     if (err[0] == 'W' && err[1] == 'A' && err[2] == 'R') {
-      std::cerr << "tinyobjloader: " << err << std::endl;    
+      std::cerr << "tinyobjloader: " << err << std::endl;
     }
     else {
-      throw std::logic_error("tinyobjloader: " + err);    
+      throw std::logic_error("tinyobjloader: " + err);
     }
   }
 
@@ -153,19 +153,42 @@ std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model) {
     unsigned indices[3] = {model.indices[i * 3],
                            model.indices[i * 3 + 1],
                            model.indices[i * 3 + 2]};
-    // access an attribute of xth vert with vector access "attribute[indices[x]]"
-    
     // calculate tangent for the triangle and add it to the accumulation tangents of the adjacent vertices
-    // see generate_normals() for similar workflow 
-  }
-  // normalize and orthogonalize accumulated vertex tangents
-  for (unsigned i = 0; i < tangents.size(); ++i) {
-    // implement orthogonalization and normalization here
+
+    glm::vec3 tangent = glm::vec3(0.0f,0.0f,0.0f);
+    //vertices positions
+    glm::vec3 p1 = positions[indices[0]];
+    glm::vec3 p2 = positions[indices[1]];
+    glm::vec3 p3 = positions[indices[2]];
+    //texture coordinates, uv
+    glm::vec2 t1 = texcoords[indices[0]];
+    glm::vec2 t2 = texcoords[indices[1]];
+    glm::vec2 t3 = texcoords[indices[2]];
+    //edges
+    glm::vec3 e1 = (p2-p1);
+    glm::vec3 e2 = (p3-p1);
+    //difference between texture coordinates
+    glm::vec2 dt1 = abs(t2-t1);
+    glm::vec2 dt2 = abs(t3-t1);
+    float factor = 1.0f/(dt1.x*dt2.y-dt2.x*dt1.y);
+    tangent.x = factor * (dt2.y*e1.x - dt1.y*e2.x);
+    tangent.y = factor * (dt2.y*e1.y - dt1.y*e2.y);
+    tangent.z = factor * (dt2.y*e1.z - dt1.y*e2.z);
+
+    tangents[indices[0]] += tangent;
+    tangents[indices[1]] += tangent;
+    tangents[indices[2]] += tangent;
   }
 
-  throw std::logic_error("Tangent creation not implemented yet");
+  // normalize and orthogonalize accumulated vertex tangents
+  for (unsigned i = 0; i < tangents.size(); ++i) {
+    tangents[i] = normalize(tangents[i] - normals[i] * dot(normals[i], tangents[i]));
+  }
+
+  // throw std::logic_error("Tangent creation not implemented yet");
 
   return tangents;
 }
+
 
 };

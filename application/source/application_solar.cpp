@@ -29,14 +29,14 @@ using namespace gl;
 std::vector<Planet> planets{ sun, mercury, venus, earth,
     moon, mars, jupiter, saturn, uranus, neptune, pluto };
 
-std::vector<std::string> files {"sun.png", "mercury.png", "venus.png", "earth.png",
-    "moon.png", "mars.png", "jupiter.png", "saturn.png", "uranus.png", "neptune.png", "pluto.png"};
-std::vector<pixel_data> planetTexts;
+std::vector<std::string> files {"sun", "mercury", "venus", "earth",
+    "moon", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto", "skybox"};
 std::vector<float> stars;
 std::vector<float> orbits;
 model_object star_object;
 model_object orbit_object;
 texture_object planet_tex;
+texture_object normal_tex;
 // float that works as boolean
 float Cel = 0.0;
 
@@ -55,11 +55,26 @@ glUniformMatrix4fv(m_shaders.at("star").u_locs.at("ModelMatrix"),
     1, GL_FALSE, glm::value_ptr(glm::fmat4{}));
 glBindVertexArray(star_object.vertex_AO);
 glDrawArrays(GL_POINTS, 0, stars.size()/6);
-  // bind shader to upload uniforms
-  glUseProgram(m_shaders.at("planet").handle);
-    // vector that holds the models which will be drawn
-    std::vector<glm::fmat4> models;
+// bind shader to upload uniforms
+glUseProgram(m_shaders.at("planet").handle);
+// vector that holds the models which will be drawn
+std::vector<glm::fmat4> models;
 
+glm::fmat4 skymodel_matrix = glm::fmat4{};
+
+//creating a sphere as a sky
+skymodel_matrix = glm::scale(skymodel_matrix, glm::fvec3{5.0f,5.0f,5.0f});
+skymodel_matrix = glm::rotate(skymodel_matrix,
+                float(glfwGetTime()) * 0.05f, {0.0f, 0.1f, 0.05f});
+glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
+    1, GL_FALSE, glm::value_ptr(skymodel_matrix));
+glBindVertexArray(planet_object.vertex_AO);
+glActiveTexture(GL_TEXTURE12);
+int SkySamplerLoc = glGetUniformLocation(m_shaders.at("planet").handle,"SkyTex");
+glUniform1i(SkySamplerLoc,12);
+glDrawElements(planet_object.draw_mode, planet_object.num_elements,
+    model::INDEX.type, NULL);
+glUniform1i(SkySamplerLoc,0);
     // for loop over the planets vector
     for (int i = 0; i < planets.size(); ++i)
         {
@@ -78,6 +93,7 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 glUniform3fv(m_shaders.at("planet").u_locs.at("PlanetPos"),1,
                     glm::value_ptr(planets[3].distance));
             }
+            //orbit creation
             glm::fmat4 orbit_matrix = model_matrix;
             orbit_matrix = glm::scale(orbit_matrix,glm::fvec3(planets[i].distance.x));
             glUseProgram(m_shaders.at("orbit").handle);
@@ -85,6 +101,8 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 1, GL_FALSE, glm::value_ptr(orbit_matrix));
             glBindVertexArray(orbit_object.vertex_AO);
             glDrawArrays(GL_LINE_LOOP, 0, orbits.size()/3);
+
+            //planet creation
             glUseProgram(m_shaders.at("planet").handle);
             model_matrix = glm::rotate(model_matrix,
                 float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
@@ -93,7 +111,6 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
                 float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
             model_matrix = glm::scale(model_matrix, planets[i].size);
             models.push_back(model_matrix);
-
             glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
                 1, GL_FALSE, glm::value_ptr(models[i]));
 
@@ -110,23 +127,28 @@ glDrawArrays(GL_POINTS, 0, stars.size()/6);
             glUniform1f(m_shaders.at("planet").u_locs.at("CelBool"),Cel);
             glUniform3fv(m_shaders.at("planet").u_locs.at("SunPosition"),1,
                 glm::value_ptr(planets[0].distance));
-            glUniform3fv(m_shaders.at("planet").u_locs.at("AmbientVector"),1,
-                glm::value_ptr(planets[i].ambient));
+                glUniform3fv(m_shaders.at("planet").u_locs.at("AmbientVector"),1,
+                    glm::value_ptr(planets[i].ambient));
             glUniform3fv(m_shaders.at("planet").u_locs.at("DiffuseVector"),1,
                 glm::value_ptr(planets[i].diffuse));
             glUniform3fv(m_shaders.at("planet").u_locs.at("SpecularVector"),1,
                 glm::value_ptr(planets[i].specular));
             glUniform1f(m_shaders.at("planet").u_locs.at("ShiningFloat"),planets[i].gloss);
 
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, planet_tex.handle);
+            //texture activation
+            glActiveTexture(GL_TEXTURE1+i);
             int colorSamplerLoc = glGetUniformLocation(m_shaders.at("planet").handle,"ColorTex");
-            // glUseProgram(m_shaders.at("planet").handle);
-            glUniform1i(colorSamplerLoc,i);
+            glUniform1i(colorSamplerLoc,1+i);
+            glActiveTexture(GL_TEXTURE13+i);
+            int normalSamplerLoc = glGetUniformLocation(m_shaders.at("planet").handle,
+                "NormalTex");
+            glUniform1i(normalSamplerLoc, 13+i);
 
             // draw bound vertex array using bound shader
             glDrawElements(planet_object.draw_mode, planet_object.num_elements,
                 model::INDEX.type, NULL);
+            //"clearing" the uniform
+            glUniform1i(colorSamplerLoc,0);
         }
 // planet for-loop ends
 }
@@ -214,6 +236,7 @@ void ApplicationSolar::keyCallback(int key, int scancode, int action, int mods) 
   {
       Cel = 1.0;
   }
+  // only for checking the textures/normals
   if (key == GLFW_KEY_3)
   {
       Cel = 2.0;
@@ -249,6 +272,8 @@ void ApplicationSolar::initializeShaderPrograms() {
   m_shaders.at("planet").u_locs["PlanetPos"] = -1;
   m_shaders.at("planet").u_locs["ShiningFloat"] = -1;
   m_shaders.at("planet").u_locs["ColorTex"] = -1;
+  m_shaders.at("planet").u_locs["NormalTex"] = -1;
+  m_shaders.at("planet").u_locs["SkyTex"] = -1;
 
   // attempt to create a shader
   m_shaders.emplace("star", shader_program{m_resource_path + "shaders/star.vert",
@@ -269,7 +294,7 @@ void ApplicationSolar::initializeShaderPrograms() {
 // load models
 void ApplicationSolar::initializeGeometry() {
   model planet_model = model_loader::obj(m_resource_path + "models/sphere.obj",
-    model::NORMAL | model::TEXCOORD);
+    model::NORMAL|model::TEXCOORD|model::TANGENT);
 
   // glEnable(GL_PROGRAM_POINT_SIZE);
   // generate vertex array object
@@ -291,10 +316,12 @@ void ApplicationSolar::initializeGeometry() {
   glEnableVertexAttribArray(1);
   // second attribute is 3 floats with no offset & stride
   glVertexAttribPointer(1, model::NORMAL.components, model::NORMAL.type, GL_FALSE, planet_model.vertex_bytes, planet_model.offsets[model::NORMAL]);
-
+  //attribute for TEXCOORD
   glEnableVertexAttribArray(2);
   glVertexAttribPointer(2, model::TEXCOORD.components, model::TEXCOORD.type, GL_FALSE, planet_model.vertex_bytes, planet_model.offsets[model::TEXCOORD]);
-
+  //attribute for TANGENT
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, model::TANGENT.components, model::TANGENT.type, GL_FALSE, planet_model.vertex_bytes, planet_model.offsets[model::TANGENT]);
 
    // generate generic buffer
   glGenBuffers(1, &planet_object.element_BO);
@@ -344,23 +371,40 @@ void ApplicationSolar::initializeGeometry() {
 }
 
 void ApplicationSolar::loadTexture() const{
-for (int i = 0; i < files.size(); ++i)
-    {
+    // iterating over the texture files and binding them to a texture unit
+    for (int i = 0; i < files.size(); ++i)
+        {
         pixel_data planet_texture = texture_loader::file(m_resource_path +
-                "textures/"+files[i]);
-    // pixel_data planet_texture = texture_loader::file(m_resource_path + "textures/sun.png");
-    glActiveTexture(GL_TEXTURE0+i);
-    glGenTextures(1, &planet_tex.handle);
-    glBindTexture(GL_TEXTURE_2D, planet_tex.handle);
+                "textures/"+files[i]+".png");
+        glActiveTexture(GL_TEXTURE1+i);
+        glGenTextures(1, &planet_tex.handle);
+        glBindTexture(GL_TEXTURE_2D, planet_tex.handle);
 
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, planet_texture.channels,
-        planet_texture.width, planet_texture.height,
-        0, planet_texture.channels, planet_texture.channel_type,
-        planet_texture.ptr());
-    }
+        glTexImage2D(GL_TEXTURE_2D, 0, planet_texture.channels,
+            planet_texture.width, planet_texture.height,
+            0, planet_texture.channels, planet_texture.channel_type,
+            planet_texture.ptr());
+        }
+    // iterating over the normal files and binding them to a texture unit
+    for (int i = 1; i < files.size()-6; ++i)
+        {
+        pixel_data normal_texture = texture_loader::file(m_resource_path +
+                "normalMaps/"+files[i]+"normal.png");
+        glActiveTexture(GL_TEXTURE13+i);
+        glGenTextures(1, &normal_tex.handle);
+        glBindTexture(GL_TEXTURE_2D, normal_tex.handle);
+
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, normal_texture.channels,
+        normal_texture.width, normal_texture.height,
+        0, normal_texture.channels, normal_texture.channel_type,
+        normal_texture.ptr());
+        }
 }
 
 
@@ -375,18 +419,18 @@ int main(int argc, char* argv[]) {
 for (int j = 0; j <= 179; j++) {
     double angle = 3.1415 * j / 90;
     float x = 1.0f * cos(angle);
-    float y = 1.0f * sin(angle);
+    float z = 1.0f * sin(angle);
     orbits.push_back(x);
     orbits.push_back(0.0f);
-    orbits.push_back(y);
+    orbits.push_back(z);
 }
 
     srand(time(NULL));
 
-    for (int i = 0; i < 1000; ++i) {
-       float p1 = -3 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (6)));
-       float p2 = -3 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (6)));
-       float p3 = -3 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (6)));
+    for (int i = 0; i < 1500; ++i) {
+       float p1 = -3.5 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (7)));
+       float p2 = -3.5 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (7)));
+       float p3 = -3.5 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (7)));
 
        float c1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
        float c2 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);

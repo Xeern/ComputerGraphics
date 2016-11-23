@@ -4,14 +4,16 @@
 layout(location = 0) in vec3 in_Position;
 layout(location = 1) in vec3 in_Normal;
 layout(location = 2) in vec2 in_Texcoord;
+layout(location = 3) in vec3 in_Tangent;
 out vec2 pass_Texcoord;
+out vec3 pass_Tangent;
 
 //Matrix Uniforms as specified with glUniformMatrix4fv
+uniform float CelBool;
 uniform mat4 ModelMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionMatrix;
 uniform mat4 NormalMatrix;
-uniform float CelBool;
 
 out vec3 pass_Normal;
 out vec3 ViewVec;
@@ -21,6 +23,8 @@ void main(void)
 {
     pass_Texcoord = in_Texcoord;
     vec4 border = vec4(in_Position + in_Normal * 0,1.0);
+    vec3 pass_Tangent = (mat3(NormalMatrix) * in_Tangent);
+
     if (CelBool == 1)
     {
         // used to prevent the planets from "shrinking" when adding the outline
@@ -31,6 +35,7 @@ void main(void)
     }
     gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * border;
 
+    // pass_Normal = normalize((NormalMatrix * vec4(in_Normal, 0.0)).xyz);
     // changed the pass_Normal variable because the old one caused our shadows
     // to go all nuts when changing the camera position
     pass_Normal = normalize(mat3(transpose(inverse(ModelMatrix))) * in_Normal);
