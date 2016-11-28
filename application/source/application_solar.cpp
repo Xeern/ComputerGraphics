@@ -37,7 +37,7 @@ model_object star_object;
 model_object orbit_object;
 texture_object planet_tex;
 texture_object normal_tex;
-// float that works as boolean
+// float that works as "boolean"
 float Cel = 0.0;
 
 ApplicationSolar::ApplicationSolar(std::string const& resource_path)
@@ -105,7 +105,7 @@ glUniform1i(SkySamplerLoc,0);
             //planet creation
             glUseProgram(m_shaders.at("planet").handle);
             model_matrix = glm::rotate(model_matrix,
-                float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
+                /*float(glfwGetTime())*/1 * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
             model_matrix = glm::translate(model_matrix, planets[i].distance);
             model_matrix = glm::rotate(model_matrix,
                 float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});

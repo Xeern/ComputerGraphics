@@ -5,7 +5,6 @@ in vec3 ViewVec;
 in vec3 FragPos;
 in vec2 pass_Texcoord;
 in vec3 pass_Tangent;
-out vec4 out_Color;
 
 uniform vec3 PlanetPos;
 uniform vec3 SunPosition;
@@ -19,6 +18,8 @@ uniform float CelBool;
 uniform sampler2D ColorTex;
 uniform sampler2D NormalTex;
 uniform sampler2D SkyTex;
+
+out vec4 out_Color;
 
 void main() {
 //general illumination
@@ -40,7 +41,7 @@ vec3 textureNormal = tanSpaceNorm * tMat;
 
 //blinn-phong illumination model with modified intensities mainly
 // for cosmetics (general illumination)
-vec3 amb = AmbientVector/*vec3(0.9f, 0.9f, 0.9f)*/ * 1 * vec3(texColor);
+vec3 amb = AmbientVector/*vec3(0.9f, 0.9f, 0.9f)*/ * 1 * texColor;
 vec3 dif = DiffuseVector/*vec3(0.7f, 0.7f, 0.7f)*/ * max(dot(LightVec,pass_Normal),0) * texColor;
 vec3 spec = SpecularVector *
             pow(max(dot(pass_Normal,HalfwayVec),0),4*ShiningFloat);
@@ -48,10 +49,10 @@ vec3 illumination = (amb + dif + spec)/(abs(PlanetPos.x)*1.5+0.4);
 //illumination if normal texture is available
 if (texSpaceNorm.x != 0.0 )
 {
-amb = AmbientVector * 1 * vec3(texColor);
+amb = AmbientVector * 1 * texColor;
 dif = DiffuseVector * max(dot(LightVec,textureNormal),0) * texColor;
 spec = SpecularVector *
-            pow(max(dot(textureNormal,HalfwayVec),0),4*ShiningFloat);
+            pow(max(dot(pass_Normal,HalfwayVec),0),4*ShiningFloat);
 illumination = (amb + dif + spec)/(abs(PlanetPos.x)*1.5+0.4);
 }
 
@@ -98,7 +99,8 @@ if (CelBool == 0)
     } else if (CelBool == 2) {
         //mostly for cheking several things
         //currently textures only without illumination
-        out_Color = texColor;
+        // out_Color = texColor;
+        out_Color = vec4(textureNormal,1.0);
         if (skyColor.x != 0.0)
         {
             out_Color = skyColor;

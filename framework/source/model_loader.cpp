@@ -168,8 +168,8 @@ std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model) {
     glm::vec3 e1 = (p2-p1);
     glm::vec3 e2 = (p3-p1);
     //difference between texture coordinates
-    glm::vec2 dt1 = abs(t2-t1);
-    glm::vec2 dt2 = abs(t3-t1);
+    glm::vec2 dt1 = (t2-t1);
+    glm::vec2 dt2 = (t3-t1);
     float factor = 1.0f/(dt1.x*dt2.y-dt2.x*dt1.y);
     tangent.x = factor * (dt2.y*e1.x - dt1.y*e2.x);
     tangent.y = factor * (dt2.y*e1.y - dt1.y*e2.y);

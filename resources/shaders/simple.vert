@@ -5,8 +5,6 @@ layout(location = 0) in vec3 in_Position;
 layout(location = 1) in vec3 in_Normal;
 layout(location = 2) in vec2 in_Texcoord;
 layout(location = 3) in vec3 in_Tangent;
-out vec2 pass_Texcoord;
-out vec3 pass_Tangent;
 
 //Matrix Uniforms as specified with glUniformMatrix4fv
 uniform float CelBool;
@@ -15,6 +13,8 @@ uniform mat4 ViewMatrix;
 uniform mat4 ProjectionMatrix;
 uniform mat4 NormalMatrix;
 
+out vec2 pass_Texcoord;
+out vec3 pass_Tangent;
 out vec3 pass_Normal;
 out vec3 ViewVec;
 out vec3 FragPos;
@@ -23,7 +23,8 @@ void main(void)
 {
     pass_Texcoord = in_Texcoord;
     vec4 border = vec4(in_Position + in_Normal * 0,1.0);
-    vec3 pass_Tangent = (mat3(NormalMatrix) * in_Tangent);
+    pass_Tangent = in_Tangent * 2 - 1;
+    // vec3 pass_Tangent = (mat3(NormalMatrix) * in_Tangent);
 
     if (CelBool == 1)
     {
@@ -40,6 +41,7 @@ void main(void)
     // to go all nuts when changing the camera position
     pass_Normal = normalize(mat3(transpose(inverse(ModelMatrix))) * in_Normal);
 
+    vec3 pass_Tangent = (pass_Normal * in_Tangent);
     mat4 CameraMatrix = inverse(ViewMatrix);
     vec3 ViewPos = CameraMatrix[3].xyz;
     FragPos = vec3(ModelMatrix * vec4(in_Position,1.0));
