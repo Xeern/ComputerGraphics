@@ -23,7 +23,7 @@ void main(void)
 {
     pass_Texcoord = in_Texcoord;
     vec4 border = vec4(in_Position + in_Normal * 0,1.0);
-    pass_Tangent = in_Tangent * 2 - 1;
+    // pass_Tangent = in_Tangent * 2 - 1;
     // vec3 pass_Tangent = (mat3(NormalMatrix) * in_Tangent);
 
     if (CelBool == 1)
@@ -41,6 +41,7 @@ void main(void)
     // to go all nuts when changing the camera position
     pass_Normal = normalize(mat3(transpose(inverse(ModelMatrix))) * in_Normal);
 
+    // vec3 pass_Tangent = (pass_Normal * in_Tangent);
     vec3 pass_Tangent = (pass_Normal * in_Tangent);
     mat4 CameraMatrix = inverse(ViewMatrix);
     vec3 ViewPos = CameraMatrix[3].xyz;

@@ -35,46 +35,57 @@ std::vector<float> stars;
 std::vector<float> orbits;
 model_object star_object;
 model_object orbit_object;
+model_object quad_object;
 texture_object planet_tex;
 texture_object normal_tex;
 // float that works as "boolean"
 float Cel = 0.0;
+
+GLuint renderbufferobj;
+GLuint texturerenderobj;
+GLuint framebufferobj;
+//creating a screen quad
+std::vector<float> quad = {-1.0f,-1.0f,0.0f,
+                            1.0f,-1.0f,0.0f,
+                            -1.0f,1.0f,0.0f,
+                            1.0f,1.0f,0.0f};
+
 
 ApplicationSolar::ApplicationSolar(std::string const& resource_path)
  :Application{resource_path}
  ,planet_object{}
 {
   loadTexture();
+  initializeFramebuffer();
   initializeGeometry();
   initializeShaderPrograms();
 }
 
 void ApplicationSolar::render() const {
-glUseProgram(m_shaders.at("star").handle);
-glUniformMatrix4fv(m_shaders.at("star").u_locs.at("ModelMatrix"),
-    1, GL_FALSE, glm::value_ptr(glm::fmat4{}));
-glBindVertexArray(star_object.vertex_AO);
-glDrawArrays(GL_POINTS, 0, stars.size()/6);
-// bind shader to upload uniforms
-glUseProgram(m_shaders.at("planet").handle);
-// vector that holds the models which will be drawn
-std::vector<glm::fmat4> models;
+    glUseProgram(m_shaders.at("star").handle);
+    glUniformMatrix4fv(m_shaders.at("star").u_locs.at("ModelMatrix"),
+        1, GL_FALSE, glm::value_ptr(glm::fmat4{}));
+    glBindVertexArray(star_object.vertex_AO);
+    glDrawArrays(GL_POINTS, 0, stars.size()/6);
+    // bind shader to upload uniforms
+    glUseProgram(m_shaders.at("planet").handle);
+    // vector that holds the models which will be drawn
+    std::vector<glm::fmat4> models;
 
-glm::fmat4 skymodel_matrix = glm::fmat4{};
-
-//creating a sphere as a sky
-skymodel_matrix = glm::scale(skymodel_matrix, glm::fvec3{5.0f,5.0f,5.0f});
-skymodel_matrix = glm::rotate(skymodel_matrix,
-                float(glfwGetTime()) * 0.05f, {0.0f, 0.1f, 0.05f});
-glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
-    1, GL_FALSE, glm::value_ptr(skymodel_matrix));
-glBindVertexArray(planet_object.vertex_AO);
-glActiveTexture(GL_TEXTURE12);
-int SkySamplerLoc = glGetUniformLocation(m_shaders.at("planet").handle,"SkyTex");
-glUniform1i(SkySamplerLoc,12);
-glDrawElements(planet_object.draw_mode, planet_object.num_elements,
-    model::INDEX.type, NULL);
-glUniform1i(SkySamplerLoc,0);
+    //creating a sphere as a sky
+    glm::fmat4 skymodel_matrix = glm::fmat4{};
+    skymodel_matrix = glm::scale(skymodel_matrix, glm::fvec3{5.0f,5.0f,5.0f});
+    skymodel_matrix = glm::rotate(skymodel_matrix,
+                    float(glfwGetTime()) * 0.05f, {0.0f, 0.1f, 0.05f});
+    glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ModelMatrix"),
+        1, GL_FALSE, glm::value_ptr(skymodel_matrix));
+    glBindVertexArray(planet_object.vertex_AO);
+    glActiveTexture(GL_TEXTURE12);
+    int SkySamplerLoc = glGetUniformLocation(m_shaders.at("planet").handle,"SkyTex");
+    glUniform1i(SkySamplerLoc,12);
+    glDrawElements(planet_object.draw_mode, planet_object.num_elements,
+        model::INDEX.type, NULL);
+    glUniform1i(SkySamplerLoc,0);
     // for loop over the planets vector
     for (int i = 0; i < planets.size(); ++i)
         {
@@ -150,6 +161,21 @@ glUniform1i(SkySamplerLoc,0);
             //"clearing" the uniform
             glUniform1i(colorSamplerLoc,0);
         }
+    glBindFramebuffer(GL_FRAMEBUFFER, framebufferobj);
+    glViewport(0,0,840,840);
+
+    // glUseProgram(m_shaders.at("screen_quad").handle);
+    // glBindVertexArray(quad_object.vertex_AO);
+
+    // int FramebufferColorLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,
+    //     "BufferTex");
+    // // std::cerr << "Here?" << std::endl;
+    // glUniform1i(FramebufferColorLoc, texturerenderobj);
+    // glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.size()/3);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0,0,840,840);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 // planet for-loop ends
 }
 
@@ -172,6 +198,8 @@ void ApplicationSolar::updateView() {
 }
 
 void ApplicationSolar::updateProjection() {
+  initializeFramebuffer();
+
   // upload matrix to gpu
   glUniformMatrix4fv(m_shaders.at("planet").u_locs.at("ProjectionMatrix"),
                      1, GL_FALSE, glm::value_ptr(m_view_projection));
@@ -289,6 +317,9 @@ void ApplicationSolar::initializeShaderPrograms() {
   m_shaders.at("orbit").u_locs["ModelMatrix"] = -1;
   m_shaders.at("orbit").u_locs["ViewMatrix"] = -1;
   m_shaders.at("orbit").u_locs["ProjectionMatrix"] = -1;
+
+  m_shaders.emplace("screen_quad", shader_program{m_resource_path + "shaders/quad.vert",
+                                            m_resource_path + "shaders/quad.frag"});
 }
 
 // load models
@@ -296,7 +327,6 @@ void ApplicationSolar::initializeGeometry() {
   model planet_model = model_loader::obj(m_resource_path + "models/sphere.obj",
     model::NORMAL|model::TEXCOORD|model::TANGENT);
 
-  // glEnable(GL_PROGRAM_POINT_SIZE);
   // generate vertex array object
   glGenVertexArrays(1, &planet_object.vertex_AO);
   // bind the array for attaching buffers
@@ -368,6 +398,47 @@ void ApplicationSolar::initializeGeometry() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, orbit_object.element_BO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * orbits.size(),
         orbits.data(), GL_STATIC_DRAW);
+
+    glGenBuffers(1, &quad_object.vertex_BO);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_object.vertex_BO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*quad.size(), quad.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, quad_object.vertex_BO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float)*3, 0);
+    glGenBuffers(1, &quad_object.element_BO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_object.element_BO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * quad.size(),
+        quad.data(), GL_STATIC_DRAW);
+}
+
+void ApplicationSolar::initializeFramebuffer() const {
+    // GLuint renderbufferobj;
+    glGenRenderbuffers(1, &renderbufferobj);
+    glBindRenderbuffer(GL_RENDERBUFFER, renderbufferobj);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 840, 840);
+
+    // GLuint texturerenderobj;
+    glGenTextures(1, &texturerenderobj);
+    glBindTexture(GL_TEXTURE_2D, texturerenderobj);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 840, 840, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+    // GLuint framebufferobj;
+    glGenFramebuffers(1, &framebufferobj);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebufferobj);
+
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texturerenderobj, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+        renderbufferobj);
+
+    GLenum drawbuffers[1] = {GL_COLOR_ATTACHMENT0};
+    glDrawBuffers(1, drawbuffers);
+
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Oops, check your Framebuffer"
+            << std::endl; };
 }
 
 void ApplicationSolar::loadTexture() const{

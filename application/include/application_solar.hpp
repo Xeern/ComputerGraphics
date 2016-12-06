@@ -25,6 +25,8 @@ class ApplicationSolar : public Application {
   // draw all objects
   void render() const;
   void loadTexture() const;
+  void initializeFramebuffer() const;
+
 
  protected:
   void initializeShaderPrograms();

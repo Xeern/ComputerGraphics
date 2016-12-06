@@ -1,4 +1,6 @@
 #version 150
+#extension GL_ARB_explicit_attrib_location : require
+
 
 in vec3 pass_Normal;
 in vec3 ViewVec;
@@ -19,7 +21,8 @@ uniform sampler2D ColorTex;
 uniform sampler2D NormalTex;
 uniform sampler2D SkyTex;
 
-out vec4 out_Color;
+// glFragData[0] = out_Color;
+layout(location = 0) out vec4 out_Color;
 
 void main() {
 //general illumination
@@ -35,7 +38,8 @@ vec4 texColor = texture(ColorTex,pass_Texcoord);
 vec3 biTangent = cross(pass_Normal,pass_Tangent);
 mat3 tMat = transpose(mat3(pass_Tangent,biTangent,pass_Normal));
 vec3 texSpaceNorm = texture(NormalTex,pass_Texcoord).rgb;
-vec3 tanSpaceNorm = normalize(texSpaceNorm * 2.0f - 1.0f);
+//ist diese transformierung nicht schon korrekt?
+vec3 tanSpaceNorm = texSpaceNorm * 2.0f - 1.0f;
 vec3 textureNormal = tanSpaceNorm * tMat;
 
 
