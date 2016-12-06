@@ -49,7 +49,10 @@ std::vector<float> quad = {-1.0f,-1.0f,0.0f,
                             1.0f,-1.0f,0.0f,
                             -1.0f,1.0f,0.0f,
                             1.0f,1.0f,0.0f};
-
+bool luminance = false;
+bool horizontal_mirror = false;
+bool vertical_mirror = false;
+bool gaussian_kernel = false;
 
 ApplicationSolar::ApplicationSolar(std::string const& resource_path)
  :Application{resource_path}
@@ -62,6 +65,10 @@ ApplicationSolar::ApplicationSolar(std::string const& resource_path)
 }
 
 void ApplicationSolar::render() const {
+glBindFramebuffer(GL_FRAMEBUFFER, framebufferobj);
+glViewport(0,0,840,840);
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glUseProgram(m_shaders.at("star").handle);
     glUniformMatrix4fv(m_shaders.at("star").u_locs.at("ModelMatrix"),
         1, GL_FALSE, glm::value_ptr(glm::fmat4{}));
@@ -116,7 +123,7 @@ void ApplicationSolar::render() const {
             //planet creation
             glUseProgram(m_shaders.at("planet").handle);
             model_matrix = glm::rotate(model_matrix,
-                /*float(glfwGetTime())*/1 * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
+                float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
             model_matrix = glm::translate(model_matrix, planets[i].distance);
             model_matrix = glm::rotate(model_matrix,
                 float(glfwGetTime()) * planets[i].rotat_sp, {0.0f, 0.1f, 0.0f});
@@ -161,22 +168,21 @@ void ApplicationSolar::render() const {
             //"clearing" the uniform
             glUniform1i(colorSamplerLoc,0);
         }
-    glBindFramebuffer(GL_FRAMEBUFFER, framebufferobj);
-    glViewport(0,0,840,840);
-
-    // glUseProgram(m_shaders.at("screen_quad").handle);
-    // glBindVertexArray(quad_object.vertex_AO);
-
-    // int FramebufferColorLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,
-    //     "BufferTex");
-    // // std::cerr << "Here?" << std::endl;
-    // glUniform1i(FramebufferColorLoc, texturerenderobj);
-    // glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.size()/3);
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0,0,840,840);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-// planet for-loop ends
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindVertexArray(quad_object.vertex_AO);
+    glUseProgram(m_shaders.at("screen_quad").handle);
+    glActiveTexture(GL_TEXTURE30);
+
+    int FramebufferColorLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,
+        "BufferTex");
+    // std::cerr << &texturerenderobj << std::endl;
+    glUniform1i(FramebufferColorLoc,30);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.size());
+
+    glUseProgram(m_shaders.at("planet").handle);
 }
 
 void ApplicationSolar::updateView() {
@@ -268,6 +274,66 @@ void ApplicationSolar::keyCallback(int key, int scancode, int action, int mods) 
   if (key == GLFW_KEY_3)
   {
       Cel = 2.0;
+  }
+  if (key == GLFW_KEY_7 && action == GLFW_PRESS)
+  {
+      if (luminance == false)
+      {
+          luminance = true;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int lumiLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"luminance");
+          glUniform1i(lumiLoc,luminance);
+      } else {
+          luminance = false;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int lumiLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"luminance");
+          glUniform1i(lumiLoc,luminance);
+      }
+  }
+  if (key == GLFW_KEY_8 && action == GLFW_PRESS)
+  {
+      if (horizontal_mirror == false)
+      {
+          horizontal_mirror = true;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int horizontalLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"horizontal_mirror");
+          glUniform1i(horizontalLoc,horizontal_mirror);
+      } else {
+          horizontal_mirror = false;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int horizontalLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"horizontal_mirror");
+          glUniform1i(horizontalLoc,horizontal_mirror);
+      }
+  }
+  if (key == GLFW_KEY_9 && action == GLFW_PRESS)
+  {
+      if (vertical_mirror == false)
+      {
+          vertical_mirror = true;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int verticalLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"vertical_mirror");
+          glUniform1i(verticalLoc,vertical_mirror);
+      } else {
+          vertical_mirror = false;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int verticalLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"vertical_mirror");
+          glUniform1i(verticalLoc,vertical_mirror);
+      }
+  }
+  if (key == GLFW_KEY_0 && action == GLFW_PRESS)
+  {
+      if (gaussian_kernel == false)
+      {
+          gaussian_kernel = true;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int gaussianLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"gaussian_kernel");
+          glUniform1i(gaussianLoc,gaussian_kernel);
+      } else {
+          gaussian_kernel = false;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int gaussianLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"gaussian_kernel");
+          glUniform1i(gaussianLoc,gaussian_kernel);
+      }
   }
 }
 
@@ -402,6 +468,9 @@ void ApplicationSolar::initializeGeometry() {
     glGenBuffers(1, &quad_object.vertex_BO);
     glBindBuffer(GL_ARRAY_BUFFER, quad_object.vertex_BO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*quad.size(), quad.data(), GL_STATIC_DRAW);
+
+    glGenVertexArrays(1, &quad_object.vertex_AO);
+    glBindVertexArray(quad_object.vertex_AO);
         glBindBuffer(GL_ARRAY_BUFFER, quad_object.vertex_BO);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float)*3, 0);
@@ -418,6 +487,7 @@ void ApplicationSolar::initializeFramebuffer() const {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 840, 840);
 
     // GLuint texturerenderobj;
+    glActiveTexture(GL_TEXTURE30);
     glGenTextures(1, &texturerenderobj);
     glBindTexture(GL_TEXTURE_2D, texturerenderobj);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
