@@ -53,6 +53,7 @@ bool luminance = false;
 bool horizontal_mirror = false;
 bool vertical_mirror = false;
 bool gaussian_kernel = false;
+bool four_grid = false;
 
 ApplicationSolar::ApplicationSolar(std::string const& resource_path)
  :Application{resource_path}
@@ -274,6 +275,21 @@ void ApplicationSolar::keyCallback(int key, int scancode, int action, int mods) 
   if (key == GLFW_KEY_3)
   {
       Cel = 2.0;
+  }
+  if (key == GLFW_KEY_4 && action == GLFW_PRESS)
+  {
+      if (four_grid == false)
+      {
+          four_grid = true;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int lumiLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"four_grid");
+          glUniform1i(lumiLoc,four_grid);
+      } else {
+          four_grid = false;
+          glUseProgram(m_shaders.at("screen_quad").handle);
+          int lumiLoc = glGetUniformLocation(m_shaders.at("screen_quad").handle,"four_grid");
+          glUniform1i(lumiLoc,four_grid);
+      }
   }
   if (key == GLFW_KEY_7 && action == GLFW_PRESS)
   {
